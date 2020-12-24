@@ -102,8 +102,20 @@ class btCylshellBoxCollisionAlgorithm : public btActivatingCollisionAlgorithm {
         }
     }
 
+
+
     btCylshellBoxCollisionAlgorithm(const btCollisionAlgorithmConstructionInfo& ci)
         : btActivatingCollisionAlgorithm(ci) {}
+
+
+
+    void hpHandleCollision(btVector4 plane, btVector3 a, btVector3 c, btScalar radius, btScalar hlen){
+        std::cout<<"plane:"<<plane.getX()<<" "<<plane.getY()<<" "<<plane.getZ()<<" "<<plane.getW()<<std::endl;
+        std::cout<<"ax:"<<a.getX()<<" ay:"<<a.getY()<<" az:"<<a.getZ()<<std::endl;
+        std::cout<<"cx:"<<c.getX()<<" cy:"<<c.getY()<<" cz:"<<c.getZ()<<std::endl;
+        std::cout<<"radius:"<<radius<<std::endl;
+        std::cout<<"hlen:"<<hlen<<std::endl;
+    }
 
     // Cylshell-box intersection test:
     //   - cylinder caps are ignored
@@ -134,13 +146,28 @@ class btCylshellBoxCollisionAlgorithm : public btActivatingCollisionAlgorithm {
 
         btVector3 a = box_X_cyl.getBasis().getColumn(1);  // cylinder axis (expressed in box frame)
         btVector3 c = box_X_cyl.getOrigin();              // cylinder center (expressed in box frame)
-
         // Box dimensions
         btVector3 hdims = box->getHalfExtentsWithMargin();
 
         // Cylinder dimensions
         btScalar radius = cyl->getRadius();    // cylinder radius
         btScalar hlen = cyl->getHalfLength();  // cylinder half-length
+
+
+
+        // Test helper function
+        btVector4 box_plane[6];
+        for(int i = 0; i<6 ; i++){
+            box->getPlaneEquation(box_plane[i], i);
+            std::cout<<"plane: "<<i<<std::endl;
+            std::cout<<"x:"<<box_plane[i].getX()<<" y:"<<box_plane[i].getY()
+                <<" z:"<<box_plane[i].getZ()<<" w: "<<box_plane[i].getW()<<std::endl;
+        }
+
+        for(int i = 0; i<6 ; i++){
+            hpHandleCollision(box_plane[i],a,c,radius,hlen);
+        }
+
 
         // Inflate the box by the radius of the capsule plus the separation value and check if the capsule centerline
         // intersects the expanded box. We do this by clamping the capsule axis to the volume between two parallel faces

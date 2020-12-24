@@ -129,6 +129,7 @@ class ChApi ChCollisionSystemBullet : public ChCollisionSystem {
     btCollisionAlgorithmCreateFunc* m_collision_cetri_cetri;
     void* m_tmp_mem;
     btCollisionAlgorithmCreateFunc* m_emptyCreateFunc;
+
 };
 
 }  // end namespace collision

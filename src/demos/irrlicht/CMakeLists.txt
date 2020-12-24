@@ -2,6 +2,7 @@
 # List of all Irrlicht demos
 
 SET(DEMOS
+  demo_IRR_cyl_box
   demo_IRR_collisionNSC
   demo_IRR_bricks
   demo_IRR_cohesion
