@@ -115,14 +115,14 @@ int main(int argc, char* argv[]) {
     ChVector<> init_omg(0, 0, 0);
 
     double radius = 0.5;  // cylinder radius
-    double hlen = 0.2;    // cylinder half-length
+    double hlen = 0.5;    // cylinder half-length
 
     // ---------
     // Step size
     // ---------
 
     //double time_step = contact_method == ChContactMethod::NSC ? 1e-3 : 1e-4;
-    double time_step = 1e-3;
+    double time_step = 5e-4;
     // --------------
     // Print settings
     // --------------
@@ -189,7 +189,7 @@ int main(int argc, char* argv[]) {
     object->SetName("object");
     object->SetMass(400);
     object->SetInertiaXX(40.0 * ChVector<>(1, 1, 0.2));
-    object->SetPos(ChVector<>(-1, init_height, 1));
+    object->SetPos(ChVector<>(-1, init_height, 0));
     object->SetRot(z2y * Q_from_AngX(init_roll));
     object->SetPos_dt(init_vel);
     object->SetWvel_par(init_omg);

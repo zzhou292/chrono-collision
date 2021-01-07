@@ -109,12 +109,230 @@ class btCylshellBoxCollisionAlgorithm : public btActivatingCollisionAlgorithm {
 
 
 
-    void hpHandleCollision(btVector4 plane, btVector3 a, btVector3 c, btScalar radius, btScalar hlen){
-        std::cout<<"plane:"<<plane.getX()<<" "<<plane.getY()<<" "<<plane.getZ()<<" "<<plane.getW()<<std::endl;
-        std::cout<<"ax:"<<a.getX()<<" ay:"<<a.getY()<<" az:"<<a.getZ()<<std::endl;
-        std::cout<<"cx:"<<c.getX()<<" cy:"<<c.getY()<<" cz:"<<c.getZ()<<std::endl;
-        std::cout<<"radius:"<<radius<<std::endl;
-        std::cout<<"hlen:"<<hlen<<std::endl;
+    void hpHandleCollision(btVector4 plane, btVector3 a, btVector3 c, btScalar radius, btScalar hlen, const btBoxShape* box, std::vector<btVector3>& ret_cyl_pt, 
+                            std::vector<btVector3>& ret_plane_pt, std::vector<btScalar>& ret_dist, bool& coll){
+        //std::cout<<"plane:"<<plane.getX()<<" "<<plane.getY()<<" "<<plane.getZ()<<" "<<plane.getW()<<std::endl;
+        //std::cout<<"ax:"<<a.getX()<<" ay:"<<a.getY()<<" az:"<<a.getZ()<<std::endl;
+        //std::cout<<"cx:"<<c.getX()<<" cy:"<<c.getY()<<" cz:"<<c.getZ()<<std::endl;
+        //std::cout<<"radius:"<<radius<<std::endl;
+        //std::cout<<"hlen:"<<hlen<<std::endl;
+
+        btVector3 plane_n = btVector3(plane.getX(),plane.getY(),plane.getZ());
+        btScalar plane_n_length = plane_n.length();
+        plane_n = plane_n/plane_n_length;
+        const btScalar threshold = btScalar(1e-5);
+        //std::cout<<"plane_n: "<<plane_n.getX()<<" "<<plane_n.getY()<<" "<<plane_n.getZ()<<std::endl;
+        btVector3 hdim = box->getHalfExtentsWithMargin();
+
+        btVector3 w = plane_n.cross(a);
+        btVector3 v = w.cross(a);
+        v.normalize();
+        btVector3 cylCenter = c + radius * v;
+        btVector3 cyl_pt_1 = cylCenter + a * hlen;
+        btVector3 cyl_pt_2 = cylCenter + a * -hlen;
+
+
+        int plane_num = -1; 
+        if(plane_n.getX() == 1){
+            plane_num = 0;
+        }else if(plane_n.getX()==-1){
+            plane_num = 1;
+        }else if(plane_n.getY()==1){
+            plane_num = 2;
+        }else if(plane_n.getY()==-1){
+            plane_num = 3;
+        }else if(plane_n.getZ()==1){
+            plane_num = 4;
+        }else if(plane_n.getZ()==-1){
+            plane_num = 5;
+        }
+
+        btVector3 plane_pt_1;
+        btVector3 plane_pt_2;
+        btVector3 plane_pt_3;
+        btVector3 plane_pt_4;
+        btVector3 plane_center;
+        btVector3 plane_pt;
+
+        float penetration = -1;
+        
+
+
+        switch (plane_num){
+            case 0:
+                if (std::abs(c.getX())-hdim.getX()>threshold && c.getX()>threshold){
+                    std::cout<<"case 0 true"<<std::endl;
+                    plane_pt_1 = btVector3(hdim.getX(),hdim.getY(),hdim.getZ());
+                    plane_pt_2 = btVector3(hdim.getX(),-hdim.getY(),hdim.getZ());
+                    plane_pt_3 = btVector3(hdim.getX(),hdim.getY(),-hdim.getZ());
+                    plane_pt_4 = btVector3(hdim.getX(),-hdim.getY(),-hdim.getZ());
+
+                    plane_center = (plane_pt_1 + plane_pt_2 + plane_pt_3 + plane_pt_4) / 4;
+
+
+                    if(cyl_pt_1.getX()<hdim.getX() || cyl_pt_2.getX()<hdim.getX()){
+                        penetration = hdim.getX() - btMin(btScalar(cyl_pt_1.getX()),btScalar(cyl_pt_2.getX()));
+                    }
+
+
+                }else{
+                    return;
+                }
+                break;
+            case 1:
+                if (std::abs(c.getX())-hdim.getX()>threshold && c.getX()<threshold){
+                    std::cout<<"case 1 true"<<std::endl;
+                    plane_pt_1 = btVector3(-hdim.getX(),hdim.getY(),hdim.getZ());
+                    plane_pt_2 = btVector3(-hdim.getX(),-hdim.getY(),hdim.getZ());
+                    plane_pt_3 = btVector3(-hdim.getX(),hdim.getY(),-hdim.getZ());
+                    plane_pt_4 = btVector3(-hdim.getX(),-hdim.getY(),-hdim.getZ());
+
+                    plane_center = (plane_pt_1 + plane_pt_2 + plane_pt_3 + plane_pt_4) / 4;
+
+                    if(cyl_pt_1.getX()>-hdim.getX() || cyl_pt_2.getX()>-hdim.getX()){
+                        penetration = btMax(btScalar(cyl_pt_1.getX()),btScalar(cyl_pt_2.getX()))+hdim.getX();
+                    }
+                }else{
+                    return;
+                }
+                break;
+            case 2:
+                if (std::abs(c.getY())-hdim.getY()>threshold && c.getY()>threshold){
+                    std::cout<<"case 2 true"<<std::endl;
+                    plane_pt_1 = btVector3(hdim.getX(),hdim.getY(),hdim.getZ());
+                    plane_pt_2 = btVector3(-hdim.getX(),hdim.getY(),hdim.getZ());
+                    plane_pt_3 = btVector3(hdim.getX(),hdim.getY(),-hdim.getZ());
+                    plane_pt_4 = btVector3(-hdim.getX(),hdim.getY(),-hdim.getZ());
+
+                    plane_center = (plane_pt_1 + plane_pt_2 + plane_pt_3 + plane_pt_4) / 4;
+
+
+                    if(cyl_pt_1.getY()<hdim.getY() || cyl_pt_2.getY()<hdim.getY()){
+                        penetration = hdim.getY() - btMin(btScalar(cyl_pt_1.getY()),btScalar(cyl_pt_2.getY()));
+                    }
+                }else{
+                    return;
+                }
+                break;
+            case 3:
+                if (std::abs(c.getY())-hdim.getY()>threshold && c.getY()<threshold){
+                    std::cout<<"case 3 true"<<std::endl;
+                    
+                    plane_pt_1 = btVector3(hdim.getX(),-hdim.getY(),hdim.getZ());
+                    plane_pt_2 = btVector3(-hdim.getX(),-hdim.getY(),hdim.getZ());
+                    plane_pt_3 = btVector3(hdim.getX(),-hdim.getY(),-hdim.getZ());
+                    plane_pt_4 = btVector3(-hdim.getX(),-hdim.getY(),-hdim.getZ());
+
+                    plane_center = (plane_pt_1 + plane_pt_2 + plane_pt_3 + plane_pt_4) / 4;
+
+                    
+                    if(cyl_pt_1.getY()>-hdim.getY() || cyl_pt_2.getY()>-hdim.getY()){
+                        // if case 3 parallel: 
+                        
+                        if(std::abs(cyl_pt_1.getY()-cyl_pt_2.getY())<100*threshold){
+                            coll = true;
+                            btVector3 cyl_plane_vec_1 = cyl_pt_1-plane_center;
+                            float dist_1 = cyl_plane_vec_1.getX()*plane_n.getX() + cyl_plane_vec_1.getY()*plane_n.getY() +  cyl_plane_vec_1.getZ()*plane_n.getZ();
+                            btVector3 plane_pt_1 = cyl_pt_1 - dist_1*plane_n;
+
+                            btVector3 cyl_plane_vec_2 = cyl_pt_2-plane_center;
+                            float dist_2 = cyl_plane_vec_2.getX()*plane_n.getX() + cyl_plane_vec_2.getY()*plane_n.getY() +  cyl_plane_vec_2.getZ()*plane_n.getZ();
+                            btVector3 plane_pt_2 = cyl_pt_2 - dist_2*plane_n;
+
+                            if(std::abs(plane_pt_1.getX())<hdim.getX() && std::abs(plane_pt_1.getZ()) < hdim.getZ()){
+                                ret_plane_pt.push_back(plane_pt_1);
+                                ret_cyl_pt.push_back(cyl_pt_1);
+                                ret_dist.push_back(btScalar(dist_1));
+                            }
+
+                            if(std::abs(plane_pt_2.getX())<=hdim.getX() && std::abs(plane_pt_2.getZ()) <= hdim.getZ()){
+                                ret_plane_pt.push_back(plane_pt_2);
+                                ret_cyl_pt.push_back(cyl_pt_2);
+                                ret_dist.push_back(btScalar(dist_2));
+                            }
+                        }else{
+                            std::vector<btVector3> ptr_collection;
+                            for(int i = 0; i < 2; i++){
+                                ptr_collection.push_back(cylCenter + hlen * (float(i+1)/2.0f) * a);
+                                ptr_collection.push_back(cylCenter - hlen * (float(i+1)/2.0f) * a);
+                            }
+
+                            for(int i = 0; i<ptr_collection.size();i++){
+                                if(ptr_collection[i].getY()-(-hdim.getY())>threshold){ 
+                                    coll = true;
+                                    btVector3 cyl_plane_vec = ptr_collection[i]-plane_center;
+                                    float dist = cyl_plane_vec.getX()*plane_n.getX() + cyl_plane_vec.getY()*plane_n.getY() +  cyl_plane_vec.getZ()*plane_n.getZ();
+                                    btVector3 plane_pt = ptr_collection[i] - dist*plane_n;
+                                    if(std::abs(plane_pt.getX())<=hdim.getX() && std::abs(plane_pt.getZ()) <= hdim.getZ()){
+                                        ret_plane_pt.push_back(plane_pt);
+                                        ret_cyl_pt.push_back(ptr_collection[i]);
+                                        ret_dist.push_back(btScalar(dist));
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }else{
+                    return;
+                }
+                break;
+            case 4:
+                if (std::abs(c.getZ())-hdim.getZ()>threshold && c.getZ()>threshold){
+                    std::cout<<"case 4 true"<<std::endl;
+                    plane_pt_1 = btVector3(hdim.getX(),hdim.getY(),hdim.getZ());
+                    plane_pt_2 = btVector3(-hdim.getX(),hdim.getY(),hdim.getZ());
+                    plane_pt_3 = btVector3(hdim.getX(),-hdim.getY(),hdim.getZ());
+                    plane_pt_4 = btVector3(-hdim.getX(),-hdim.getY(),hdim.getZ());
+
+                    plane_center = (plane_pt_1 + plane_pt_2 + plane_pt_3 + plane_pt_4) / 4;
+
+
+
+                    if(cyl_pt_1.getZ()<hdim.getZ() || cyl_pt_2.getZ()<hdim.getZ()){
+                        penetration = hdim.getZ() - btMin(btScalar(cyl_pt_1.getZ()),btScalar(cyl_pt_2.getZ()));
+                    }
+                }else{
+                    return;
+                }
+                break;
+            case 5:
+                if (std::abs(c.getZ())-hdim.getZ()>threshold && c.getZ()<threshold){
+                    std::cout<<"case 5 true"<<std::endl;
+                    plane_pt_1 = btVector3(hdim.getX(),hdim.getY(),-hdim.getZ());
+                    plane_pt_2 = btVector3(-hdim.getX(),hdim.getY(),-hdim.getZ());
+                    plane_pt_3 = btVector3(hdim.getX(),-hdim.getY(),-hdim.getZ());
+                    plane_pt_4 = btVector3(-hdim.getX(),-hdim.getY(),-hdim.getZ());
+
+                    plane_center = (plane_pt_1 + plane_pt_2 + plane_pt_3 + plane_pt_4) / 4;
+
+                    if(cyl_pt_1.getZ()>-hdim.getZ() || cyl_pt_2.getZ()>-hdim.getZ()){
+                        penetration = btMax(btScalar(cyl_pt_1.getZ()),btScalar(cyl_pt_2.getZ()))+hdim.getZ();
+                    }
+                }else{
+                    return;
+                }
+                break;
+        }
+
+
+        // if the current plane is not active, then the program won't proceed
+
+        //std::cout<<"penetration: "<<penetration<<std::endl;
+        //std::cout<<"plane_center: "<<plane_center.getX()<<" "<<plane_center.getY()<<" "<<plane_center.getZ()<<std::endl;
+        //std::cout<<"plane_pt: "<<plane_pt.getX()<<" "<<plane_pt.getY()<<" "<<plane_pt.getZ()<<std::endl;
+        //std::cout<<"c_moved: "<<cylCenter.getX()<<" "<<cylCenter.getY()<<" "<<cylCenter.getZ()<<std::endl;
+
+
+        //std::cout<<"cyl_pt_1: "<<cyl_pt_1.getX()<<" "<<cyl_pt_1.getY()<<" "<<cyl_pt_1.getZ()<<std::endl;
+        //std::cout<<"cyl_pt_2: "<<cyl_pt_2.getX()<<" "<<cyl_pt_2.getY()<<" "<<cyl_pt_2.getZ()<<std::endl; 
+        //std::cout<<"plane_pt_1: "<<plane_pt_1.getX()<<" "<<plane_pt_1.getY()<<" "<<plane_pt_1.getZ()<<std::endl;
+        //std::cout<<"plane_pt_2: "<<plane_pt_2.getX()<<" "<<plane_pt_2.getY()<<" "<<plane_pt_2.getZ()<<std::endl; 
+        //std::cout<<"plane_pt_3: "<<plane_pt_3.getX()<<" "<<plane_pt_3.getY()<<" "<<plane_pt_3.getZ()<<std::endl;
+        //std::cout<<"plane_pt_4: "<<plane_pt_4.getX()<<" "<<plane_pt_4.getY()<<" "<<plane_pt_4.getZ()<<std::endl;    
+
+
+        
+
     }
 
     // Cylshell-box intersection test:
@@ -159,259 +377,29 @@ class btCylshellBoxCollisionAlgorithm : public btActivatingCollisionAlgorithm {
         btVector4 box_plane[6];
         for(int i = 0; i<6 ; i++){
             box->getPlaneEquation(box_plane[i], i);
-            std::cout<<"plane: "<<i<<std::endl;
-            std::cout<<"x:"<<box_plane[i].getX()<<" y:"<<box_plane[i].getY()
-                <<" z:"<<box_plane[i].getZ()<<" w: "<<box_plane[i].getW()<<std::endl;
+            //std::cout<<"plane: "<<i<<std::endl;
+            //std::cout<<"x:"<<box_plane[i].getX()<<" y:"<<box_plane[i].getY()
+            //    <<" z:"<<box_plane[i].getZ()<<" w: "<<box_plane[i].getW()<<std::endl;
         }
 
         for(int i = 0; i<6 ; i++){
-            hpHandleCollision(box_plane[i],a,c,radius,hlen);
-        }
+            std::vector<btVector3> cyl_pt;
+            std::vector<btVector3> box_pt;
+            std::vector<btScalar> dist;
+            bool coll = false;
+            hpHandleCollision(box_plane[i],a,c,radius,hlen,box,cyl_pt,box_pt,dist,coll);
+            if(coll==true){
+                for(int j = 0; j<cyl_pt.size();j++)
+                {
+                    std::cout<<"dist = "<<dist[j]<<std::endl;
+                    btScalar penetration = -std::abs(dist[j]);                              // distance, negative for penetration
+                    btVector3 normal = abs_X_box.getBasis() * ((cyl_pt[j]-box_pt[j]) / -std::abs(dist[j]));  // normal, pointing from B to A
+                    btVector3 point = abs_X_box(cyl_pt[j]);                     // point, located on surface of B
 
+                    resultOut->addContactPoint(normal, point, penetration);
+                }
 
-        // Inflate the box by the radius of the capsule plus the separation value and check if the capsule centerline
-        // intersects the expanded box. We do this by clamping the capsule axis to the volume between two parallel faces
-        // of the box, considering in turn the x, y, and z faces.
-        btVector3 hdims_exp = hdims + btVector3(radius, radius, radius);
-        btScalar tMin = -BT_LARGE_FLOAT;
-        btScalar tMax = +BT_LARGE_FLOAT;
-
-        const btScalar threshold = btScalar(1e-5);  // threshold for line parallel to face tests
-
-        if (std::abs(a.x()) < threshold) {
-            // Capsule axis parallel to the box x-faces
-            if (std::abs(c.x()) > hdims_exp.x())
-                return;
-        } else {
-            btScalar t1 = (-hdims_exp.x() - c.x()) / a.x();
-            btScalar t2 = (+hdims_exp.x() - c.x()) / a.x();
-
-            tMin = btMax(tMin, btMin(t1, t2));
-            tMax = btMin(tMax, btMax(t1, t2));
-
-            if (tMin > tMax)
-                return;
-        }
-
-        if (std::abs(a.y()) < threshold) {
-            // Capsule axis parallel to the box y-faces
-            if (std::abs(c.y()) > hdims_exp.y())
-                return;
-        } else {
-            btScalar t1 = (-hdims_exp.y() - c.y()) / a.y();
-            btScalar t2 = (+hdims_exp.y() - c.y()) / a.y();
-
-            tMin = btMax(tMin, btMin(t1, t2));
-            tMax = btMin(tMax, btMax(t1, t2));
-
-            if (tMin > tMax)
-                return;
-        }
-
-        if (std::abs(a.z()) < threshold) {
-            // Capsule axis parallel to the box z-faces
-            if (std::abs(c.z()) > hdims_exp.z())
-                return;
-        } else {
-            btScalar t1 = (-hdims_exp.z() - c.z()) / a.z();
-            btScalar t2 = (+hdims_exp.z() - c.z()) / a.z();
-
-            tMin = btMax(tMin, btMin(t1, t2));
-            tMax = btMin(tMax, btMax(t1, t2));
-
-            if (tMin > tMax)
-                return;
-        }
-
-        // Generate the two points where the cylinder centerline intersects the exapanded box (still expressed in the
-        // box frame). Snap these locations to the original box, then snap back onto the cylinder axis. This reduces
-        // the collision problem to 1 or 2 collisions.
-        btVector3 locs[2] = {c + tMin * a, c + tMax * a};
-        btScalar t[2];
-
-        for (int i = 0; i < 2; i++) {
-            snap_to_box(hdims, locs[i]);
-            t[i] = btClamped(a.dot(locs[i] - c), -hlen, hlen);
-        }
-
-        // Check if the two points almost coincide (in which case consider only one of them)
-        int numPoints = std::abs(t[0] - t[1]) < 1e-4 ? 1 : 2;
-
-        // Perform collision tests.
-        for (int i = 0; i < numPoints; i++) {
-            // Point on the cylinder axis (expressed in the box frame).
-            btVector3 axisPoint = c + a * t[i];
-
-            // Snap to box. If axis point inside box, no contact.
-            btVector3 boxPoint = axisPoint;
-            int code = snap_to_box(hdims, boxPoint);
-            if (code == 0)
-                continue;
-
-            // Find closest point on cylinder to the box. If this point is on the cylinder centerline, no contact.
-            btVector3 u = axisPoint - boxPoint;
-            btScalar u_length = u.length();
-            if (u_length < threshold)
-                continue;
-            u /= u_length;
-            btVector3 w = u.cross(a);
-            if (w.length() < threshold)
-                continue;
-            btVector3 v = w.cross(a);
-            v.normalize();
-            btVector3 cylPoint = axisPoint + radius * v;
-
-            // If cylinder point outside box, no contact.
-            code = snap_to_box(hdims, cylPoint);
-            if (code != 0)
-                continue;
-            
-            // Moving in the u direction, project cylinder point onto box surface.
-            btScalar step = BT_LARGE_FLOAT;
-            if (std::abs(u.x()) > threshold)
-                step = btMin((btSign(u.x()) * hdims.x() - cylPoint.x()) / u.x(), step);
-            if (std::abs(u.y()) > threshold)
-                step = btMin((btSign(u.y()) * hdims.y() - cylPoint.y()) / u.y(), step);
-            if (std::abs(u.z()) > threshold)
-                step = btMin((btSign(u.z()) * hdims.z() - cylPoint.z()) / u.z(), step);
-            boxPoint = cylPoint + step * u;
-
-            // Debug check: boxPoint inside cylinder
-            assert(std::abs(a.dot(boxPoint - c)) <= btScalar(1.01) * hlen);
-
-            // Calculate penetration
-            btVector3 delta = boxPoint - cylPoint;
-            btScalar dist = delta.length();
-            if (dist < 1e-10)
-                continue;
-
-            // Generate contact information (transform to absolute frame).
-            btScalar penetration = -dist;                              // distance, negative for penetration
-            btVector3 normal = abs_X_box.getBasis() * (delta / dist);  // normal, pointing from B to A
-            btVector3 point = abs_X_box(boxPoint);                     // point, located on surface of B
-
-            resultOut->addContactPoint(normal, point, penetration);
-
-            ////std::cout << "add contact --  t= " << t[itest] << "  face " << i << "  dist= " << dist << "  depth= " << penetration << std::endl;
-        }
-
-        /*
-        //==  USE CAPSULE ==//
-
-        // Contact distance
-        btScalar contactDist = radius;
-        ////btScalar contactDist = radius + m_manifoldPtr->getContactBreakingThreshold();
-
-        // Inflate the box by the radius of the capsule plus the separation value
-        // and check if the capsule centerline intersects the expanded box. We do
-        // this by clamping the capsule axis to the volume between two parallel
-        // faces of the box, considering in turn the x, y, and z faces.
-        btVector3 hdims_exp = hdims + btVector3(radius, radius, radius);
-        btScalar tMin = -BT_LARGE_FLOAT;
-        btScalar tMax = +BT_LARGE_FLOAT;
-
-        const btScalar threshold = btScalar(1e-5); // threshold for line parallel to face tests
-
-        if (std::abs(a.x()) < threshold) {
-            // Capsule axis parallel to the box x-faces
-            if (std::abs(c.x()) > hdims_exp.x())
-                return;
-        } else {
-            btScalar t1 = (-hdims_exp.x() - c.x()) / a.x();
-            btScalar t2 = (+hdims_exp.x() - c.x()) / a.x();
-
-            tMin = btMax(tMin, btMin(t1, t2));
-            tMax = btMin(tMax, btMax(t1, t2));
-
-            if (tMin > tMax)
-                return;
-        }
-
-        if (std::abs(a.y()) < threshold) {
-            // Capsule axis parallel to the box y-faces
-            if (std::abs(c.y()) > hdims_exp.y())
-                return;
-        } else {
-            btScalar t1 = (-hdims_exp.y() - c.y()) / a.y();
-            btScalar t2 = (+hdims_exp.y() - c.y()) / a.y();
-
-            tMin = btMax(tMin, btMin(t1, t2));
-            tMax = btMin(tMax, btMax(t1, t2));
-
-            if (tMin > tMax)
-                return;
-        }
-
-        if (std::abs(a.z()) < threshold) {
-            // Capsule axis parallel to the box z-faces
-            if (std::abs(c.z()) > hdims_exp.z())
-                return;
-        } else {
-            btScalar t1 = (-hdims_exp.z() - c.z()) / a.z();
-            btScalar t2 = (+hdims_exp.z() - c.z()) / a.z();
-
-            tMin = btMax(tMin, btMin(t1, t2));
-            tMax = btMin(tMax, btMax(t1, t2));
-
-            if (tMin > tMax)
-                return;
-        }
-
-        // Generate the two points where the capsule centerline intersects
-        // the exapanded box (still expressed in the box frame). Snap these
-        // locations onto the original box, then snap back onto the capsule
-        // axis. This reduces the collision problem to 1 or 2 box-sphere
-        // collisions.
-        btVector3 locs[2] = {c + tMin * a, c + tMax * a};
-        btScalar t[2];
-
-        for (int i = 0; i < 2; i++) {
-            snap_to_box(hdims, locs[i]);
-            t[i] = btClamped(a.dot(locs[i] - c), -hlen, hlen);
-        }
-
-        // Check if the two points almost coincide (in which case consider only one of them)
-        int numSpheres = std::abs(t[0] - t[1]) < 1e-4 ? 1 : 2;
-
-        // Perform box-sphere tests, and keep track of actual number of contacts.
-        int j = 0;
-
-        for (int i = 0; i < numSpheres; i++) {
-            // Calculate the center of the corresponding sphere on the capsule centerline (expressed in the box frame).
-            btVector3 spherePos = c + a * t[i];
-
-            // Snap the sphere position to the surface of the box.
-            btVector3 boxPos = spherePos;
-            snap_to_box(hdims, boxPos);
-
-            // If the distance from the sphere center to the closest point is larger than the radius plus the separation
-            // value, then there is no contact. Also, ignore contact if the sphere center (almost) coincides with the
-            // closest point, in which case we couldn't decide on the proper contact direction.
-            btVector3 delta = spherePos - boxPos;
-            btScalar dist2 = delta.length2();
-
-            if (dist2 >= contactDist * contactDist || dist2 <= 1e-12)
-                continue;
-
-            // Generate contact information.
-            btScalar dist = btSqrt(dist2);
-            btScalar penetration = dist - radius;
-            // Transform to absolute frame
-            btVector3 normal = abs_X_box.getBasis() * (delta / dist);
-            btVector3 point = abs_X_box(boxPos);
-
-            // A new contact point must specify:
-            //   normal, pointing from B towards A
-            //   point, located on surface of B
-            //   distance, negative for penetration
-            resultOut->addContactPoint(normal, point, penetration);
-
-            ////std::cout << "add contact --  t= " << t[itest] << "  face " << i << "  dist= " << dist << "  depth= " << penetration << std::endl;
-        }
-        */
-
-        if (m_ownManifold && m_manifoldPtr->getNumContacts()) {
-            resultOut->refreshContactPoints();
+            }
         }
     }
 
